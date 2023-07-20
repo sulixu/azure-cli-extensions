@@ -7,7 +7,7 @@
 
 from setuptools import setup, find_packages
 
-VERSION = "0.3.0"
+VERSION = "0.1.0"
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -30,16 +30,16 @@ DEPENDENCIES = [
 ]
 
 setup(
-    name='chat',
+    name='ai',
     version=VERSION,
     description='Interact with LLM to generate and executable Azure CLIs.',
     long_description=README + '\n\n' + HISTORY,
     license='MIT',
     author='Microsoft Corporation',
     author_email='sulixu@microsoft.com',
-    url='https://github.com/Azure/azure-cli-extensions/tree/main/src/chat',
+    url='https://github.com/Azure/azure-cli-extensions/tree/main/src/ai',
     classifiers=CLASSIFIERS,
     packages=find_packages(),
     install_requires=DEPENDENCIES,
-    package_data={'azext_chat': ['azext_metadata.json']}
+    package_data={'azext_ai': ['azext_metadata.json']}
 )
