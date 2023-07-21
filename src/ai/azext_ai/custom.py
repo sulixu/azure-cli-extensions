@@ -20,7 +20,9 @@ PROGRAMMER = "you are an expert programmer that can help develop programs and so
 AZ_CLI_EXPERT = "You are a microsoft azure cloud expert trying to with how to use azure `az` CLI. "  # Do not provide any explanations, only generate az commands.
 K8S_EXPERT = "You are a Kubernetes YAML generator, only generate valid Kubernetes YAML manifests. Do not provide any explanations, only generate YAML."
 
-if os.name == 'nt':
+IS_MS_WINDOWS = os.name == 'nt'
+
+if IS_MS_WINDOWS:
     SCRIPT_TYPE = "Windows PowerShell"
 else:
     SCRIPT_TYPE = "Bash Script"
@@ -36,7 +38,7 @@ AKS_EXPERT = \
 SYSTEM_PROMPT = {"role": "system", "content": AKS_EXPERT}
 
 # Define a platform-specific function to get a single character
-if os.name == 'nt':
+if IS_MS_WINDOWS:
     # Windows system
     import msvcrt
 
@@ -71,18 +73,14 @@ def run_command_as_shell(cmd):
         return process.returncode, stdout.decode()
 
 
-def run_bash_script(shell_script: str):
-    # Run the shell script using 'bash -c' and capture the output
-    result = subprocess.run(["bash", "-c", shell_script], capture_output=True, text=True)
-    output = result.stdout if result.returncode == 0 else result.stderr
-    return result.returncode, output
-
-
-def run_powershell_script(powershell_script: str):
-    # Run the PowerShell script using 'powershell -Command' and capture the output
-    result = subprocess.run(["powershell", "-Command", powershell_script], capture_output=True, text=True)
-    output = result.stdout if result.returncode == 0 else result.stderr
-    return result.returncode, output
+def run_system_script(script_content: str):
+    # do not set capture_output=True, so user can interact with yes/no answer from script
+    if IS_MS_WINDOWS:
+        cmd = ["powershell", "-Command", script_content]
+    else:
+        cmd = ["bash", "-c", script_content]
+    result = subprocess.run(cmd, text=True)
+    return result.returncode
 
 
 def extract_backticks_commands(text):
@@ -249,16 +247,8 @@ def prompt_user_to_run_script(scripts):
         ord_code = ord(user_input)
         if ord_0 <= ord_code < ord_0 + n_scripts:
             i = ord_code - ord_0
-            # scripts = scripts.replace('<', '').replace('>', '').replace('`', '').replace('|', '').replace('&', '')
             script = scripts[i]
-            # test script, remove below for production
-            # script = """
-            # echo "Hello, World!"
-            # ls -ltr
-            # """
-            returncode, output = run_bash_script(script)
-            print(output)
-            return
+            return run_system_script(script)
 
 
 USER_INPUT_PROMPT = "Prompt: "
