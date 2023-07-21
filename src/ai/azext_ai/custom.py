@@ -289,7 +289,7 @@ def start_chat(**kwargs):
         # Handle user input
         user_input = getch()
         if user_input == 'p' or user_input == 'P':
-            scripts, messages = prompt_chat_gpt([SYSTEM_PROMPT], insist=False, scripts=scripts)
+            scripts, messages = prompt_chat_gpt(messages, insist=False, scripts=scripts)
         elif (user_input == 'r' or user_input == 'R') and len(scripts) > 0:
             prompt_user_to_run_script(scripts)
         elif user_input == 'q' or user_input == 'Q':
