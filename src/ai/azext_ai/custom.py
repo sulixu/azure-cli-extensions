@@ -20,7 +20,6 @@ PROGRAMMER = "you are an expert programmer that can help develop programs and so
 AZ_CLI_EXPERT = "You are a microsoft azure cloud expert trying to with how to use azure `az` CLI. "  # Do not provide any explanations, only generate az commands.
 K8S_EXPERT = "You are a Kubernetes YAML generator, only generate valid Kubernetes YAML manifests. Do not provide any explanations, only generate YAML."
 
-
 if os.name == 'nt':
     SCRIPT_TYPE = "Windows PowerShell"
 else:
@@ -247,44 +246,50 @@ def prompt_user_to_run_script(scripts):
         if user_input == 'r' or user_input == 'R':
             user_input = '0'
         ord_0 = ord('0')
-        ordcode = ord(user_input)
-        if ord_0 <= ordcode < ord_0 + n_scripts:
-            i = ordcode - ord_0
+        ord_code = ord(user_input)
+        if ord_0 <= ord_code < ord_0 + n_scripts:
+            i = ord_code - ord_0
             # scripts = scripts.replace('<', '').replace('>', '').replace('`', '').replace('|', '').replace('&', '')
             script = scripts[i]
-
             # test script, remove below for production
-            script = """  
-            echo "Hello, World!"  
-            ls -ltr 
-            """
+            # script = """
+            # echo "Hello, World!"
+            # ls -ltr
+            # """
             returncode, output = run_bash_script(script)
             print(output)
             return
+
+
+USER_INPUT_PROMPT = "Prompt: "
+
+
+def prompt_chat_gpt(messages, insist=True, scripts=''):
+    while True:
+        text_input = str(input(USER_INPUT_PROMPT)).strip()
+        if re.search(r'[a-zA-Z]', text_input):
+            messages.append({"role": "user", "content": text_input})
+            _, scripts, messages = chatgpt(messages)
+            return scripts, messages
+        if not insist:
+            return scripts, messages
 
 
 def start_chat(**kwargs):
     print("Please enter your request below.")
     print("For example: How to create a AKS cluster")
 
-    messages = [SYSTEM_PROMPT]
-
-    text_input = input("Prompt: ")
-    messages.append({"role": "user", "content": text_input})
-    _, scripts, messages = chatgpt(messages)
-
+    scripts, messages = prompt_chat_gpt([SYSTEM_PROMPT])
     while True:
         print("\nMenu: [p: re-Prompt, ", end="")
         if len(scripts) > 0:
-            print("r: dry-Run, ", end="")
+            print("r: Run, ", end="")
         print("q: Quit]", flush=True)
 
-        user_input = getch()
         # Handle user input
+        user_input = getch()
         if user_input == 'p' or user_input == 'P':
-            text_input = input("Prompt: ")
-            messages.append({"role": "user", "content": text_input})
-            _, scripts, messages = chatgpt(messages)
+            scripts, messages = prompt_chat_gpt([SYSTEM_PROMPT], insist=False, scripts=scripts)
         elif (user_input == 'r' or user_input == 'R') and len(scripts) > 0:
             prompt_user_to_run_script(scripts)
         elif user_input == 'q' or user_input == 'Q':

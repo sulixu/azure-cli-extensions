@@ -7,13 +7,12 @@ python3 -m venv env
 source env/bin/activate
 pip3 install azdev
 azdev setup --cli azure-cli --repo azure-cli-extensions
-# install openai python library
-pip3 install openai
+# install other python library
+pip3 install openai colorama
 ```
 ```
-sulixu@Sulis-MacBook-Pro azure-cli-extensions % . ../env/bin/activate
-(env) sulixu@Sulis-MacBook-Pro azure-cli-extensions % azdev extension build ai
-Building extension '/Users/sulixu/ms/azure-cli-extensions/src/ai'...
+% azdev extension build ai
+Building extension 'azure-cli-extensions/src/ai'...
 ```
 
 ### How to set required ENV ###
