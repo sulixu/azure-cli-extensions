@@ -2,15 +2,19 @@
 This package is for the 'ai' extension, i.e. 'az aks ai'.
 
 ### How to build ###
+
 ```
+# you need to clone both azure-cli and azure-cli-extensions repos first
 python3 -m venv env
 source env/bin/activate
 pip3 install azdev
+# link the 2 repos for development using below command
 azdev setup --cli azure-cli --repo azure-cli-extensions
 # install other python library
 pip3 install openai colorama
 ```
 ```
+# build command
 % azdev extension build ai
 Building extension 'azure-cli-extensions/src/ai'...
 ```
@@ -29,14 +33,6 @@ export OPENAI_API_DEPLOYMENT="gpt-4-32k-0314"
 ```
 az aks ai
 ```
-
-
-### How to use ###
-Install this extension using the below CLI command
-```
-az extension add --name ai
-```
-
 
 If you have issues, please give feedback by opening an issue at https://github.com/Azure/azure-cli-extensions/issues.
 
