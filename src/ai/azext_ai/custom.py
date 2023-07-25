@@ -13,12 +13,8 @@ openai.api_base = os.getenv("OPENAI_API_BASE") or "https://api.openai.com"
 openai.api_version = os.getenv("OPENAI_API_VERSION") or "2023-03-15-preview"
 openai.api_key = os.getenv("OPENAI_API_KEY")
 OPENAI_API_DEPLOYMENT = os.getenv("OPENAI_API_DEPLOYMENT")
-TEMPERATURE = 0.2
+TEMPERATURE = 0.1
 MAX_TOKENS = 800
-
-PROGRAMMER = "you are an expert programmer that can help develop programs and solve problems"
-AZ_CLI_EXPERT = "You are a microsoft azure cloud expert trying to with how to use azure `az` CLI. "  # Do not provide any explanations, only generate az commands.
-K8S_EXPERT = "You are a Kubernetes YAML generator, only generate valid Kubernetes YAML manifests. Do not provide any explanations, only generate YAML."
 
 IS_MS_WINDOWS = os.name == 'nt'
 
@@ -27,14 +23,26 @@ if IS_MS_WINDOWS:
 else:
     SCRIPT_TYPE = "Bash Script"
 
-AKS_EXPERT = \
-    f'''You are a microsoft Azure Kubernetes Service expert that helps user on 
-    writing a {SCRIPT_TYPE} to automate AKS that leverage the `az` command.
-    When constructing `az` commands to execute, 
-    always fill in a default input value for the command by 
-    helping the user to make up names, and come up with sensible default like a specific number or region name.
-    Write the {SCRIPT_TYPE} and add explanations as comments within script.
-    '''
+AKS_EXPERT = f'''
+You are a microsoft Azure Kubernetes Service expert.
+
+Context: The user will provide you a description of what they want to accomplish
+
+Your task is to help user writing a {SCRIPT_TYPE} to automate AKS that leverage the `az` command
+
+When constructing `az` commands to execute, always fill in a default input value for the command by 
+helping the user to make up names, and come up with sensible default like a specific number or region name.
+
+If there are required input value that you need user to provide, prompt the user for the value, 
+if possible, provide hints or commands for the user to execute for them to get the required value.
+
+each script block you output enclosed by ``` should be self sufficient to run
+if you create variable in a previous script block, repeat it again if it is needed in another script block.
+
+Be aware that as a AI model, your data might be out of date, if user supplied input that you are unaware of, just accept and use it.
+
+Write the {SCRIPT_TYPE} and add explanations as comments within script.
+'''.strip()
 SYSTEM_PROMPT = {"role": "system", "content": AKS_EXPERT}
 
 # Define a platform-specific function to get a single character
@@ -125,7 +133,7 @@ def switch_color_context(state):
     if state == STATE_IN_CHAT:
         print(Fore.CYAN)
     else:
-        print(Fore.BLUE)
+        print(Fore.GREEN)
 
 
 def process_message_prefix(content, previous_context=None):
@@ -223,12 +231,14 @@ def chatgpt(messages):
 
 def prompt_user_to_run_script(scripts):
     n_scripts = len(scripts)
-    switch_color_context(STATE_IN_CODE)
     if n_scripts > 1:
         for i, script in enumerate(scripts):
-            print(f"Hit `{i}` key to run:")
+            print(Style.RESET_ALL)
+            print(f"Hit `{i}` key to run the script as below:")
+            switch_color_context(STATE_IN_CODE)
             print(script)
     elif n_scripts == 1:
+        switch_color_context(STATE_IN_CODE)
         print(scripts[0])
     else:
         return
@@ -267,7 +277,7 @@ def prompt_chat_gpt(messages, insist=True, scripts=''):
 
 def start_chat(**kwargs):
     print("Please enter your request below.")
-    print("For example: How to create a AKS cluster")
+    print("For example: Please create a AKS cluster")
 
     scripts, messages = prompt_chat_gpt([SYSTEM_PROMPT])
     while True:
