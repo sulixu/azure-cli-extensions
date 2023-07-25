@@ -36,5 +36,8 @@ This package is for the 'ai' extension, i.e. 'az aks ai'.
 
     az aks ai
 
+### Demo Screencast
+![](demo.gif)
+
 If you have issues, please give feedback by opening an issue at https://github.com/Azure/azure-cli-extensions/issues.
 
