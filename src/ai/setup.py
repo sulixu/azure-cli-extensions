@@ -27,6 +27,8 @@ with open('HISTORY.md', 'r', encoding='utf-8') as f:
     HISTORY = f.read()
 
 DEPENDENCIES = [
+    "openai",
+    "colorama"
 ]
 
 setup(

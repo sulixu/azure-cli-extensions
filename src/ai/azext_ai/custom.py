@@ -8,14 +8,6 @@ import os
 import sys
 import subprocess
 
-openai.api_type = os.getenv("OPENAI_API_TYPE") or "azure"
-openai.api_base = os.getenv("OPENAI_API_BASE") or "https://api.openai.com"
-openai.api_version = os.getenv("OPENAI_API_VERSION") or "2023-03-15-preview"
-openai.api_key = os.getenv("OPENAI_API_KEY")
-OPENAI_API_DEPLOYMENT = os.getenv("OPENAI_API_DEPLOYMENT")
-TEMPERATURE = 0.1
-MAX_TOKENS = 800
-
 IS_MS_WINDOWS = os.name == 'nt'
 
 if IS_MS_WINDOWS:
@@ -28,7 +20,7 @@ You are a microsoft Azure Kubernetes Service expert.
 
 Context: The user will provide you a description of what they want to accomplish
 
-Your task is to help user writing a {SCRIPT_TYPE} to automate AKS that leverage the `az` command
+Your task is to help user writing a {SCRIPT_TYPE} to automate AKS that leverages the `az` command
 
 When constructing `az` commands to execute, always fill in a default input value for the command by 
 helping the user to make up names, and come up with sensible default like a specific number or region name.
@@ -136,43 +128,16 @@ def switch_color_context(state):
         print(Fore.GREEN)
 
 
-def process_message_prefix(content, previous_context=None):
-    if not previous_context:
-        return content, False
-    elif len(previous_context) == 1 and len(content) > 1 and content[0:2] == '``':
-        print('```', end='')
-        return content[2:], True
-    elif len(previous_context) == 2 and len(content) >= 1 and content[0] == '`':
-        print('```', end='')
-        return content[1:], True
-    else:
-        print(previous_context)
-        return content, False
-
-
-def process_message_suffix(content):
-    if content == '`' or content == '``':
-        return content
-    if re.match(r"""[^`]+`$""", content):
-        print(content[0:-1], end='')
-        return '`'
-    if re.match(r"""[^`]+``$""", content):
-        print(content[0:-2], end='')
-        return '``'
-    return ''
-
-
-def chatgpt(messages):
+def chatgpt(messages, params):
     response = openai.ChatCompletion.create(
-        engine=OPENAI_API_DEPLOYMENT,
+        # top_p=0.95,
+        # frequency_penalty=0,
+        # presence_penalty=0,
         messages=messages,
-        temperature=TEMPERATURE,
-        max_tokens=MAX_TOKENS,
-        top_p=0.95,
-        frequency_penalty=0,
-        presence_penalty=0,
         stop=None,
-        stream=True)
+        stream=True,
+        **params,
+    )
     # if not using stream=True, then response is a dict
     # response['choices'][0]['finish_reason']=='stop'
     # response['choices'][0]['message']['role'] #'assistant'
@@ -264,22 +229,71 @@ def prompt_user_to_run_script(scripts):
 USER_INPUT_PROMPT = "Prompt: "
 
 
-def prompt_chat_gpt(messages, insist=True, scripts=''):
+def prompt_chat_gpt(messages, params, insist=True, scripts=''):
     while True:
         text_input = str(input(USER_INPUT_PROMPT)).strip()
         if re.search(r'[a-zA-Z]', text_input):
             messages.append({"role": "user", "content": text_input})
-            _, scripts, messages = chatgpt(messages)
+            _, scripts, messages = chatgpt(messages, params)
             return scripts, messages
         if not insist:
             return scripts, messages
 
 
-def start_chat(**kwargs):
-    print("Please enter your request below.")
-    print("For example: Please create a AKS cluster")
+def setup_openai():
+    errors = []
+    params = {
+        'temperature': os.getenv("OPENAI_API_TEMPERATURE") or 0.1,
+        'max_tokens': os.getenv("OPENAI_API_MAX_TOKENS") or 800
+    }
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        errors.append("Environment variable OPENAI_API_KEY is not set")
+    else:
+        openai.api_key = api_key
 
-    scripts, messages = prompt_chat_gpt([SYSTEM_PROMPT])
+    api_type = os.getenv("OPENAI_API_TYPE")
+    if api_type and api_type.startswith("azure"):
+        openai.api_type = api_type
+
+        api_base = os.getenv("OPENAI_API_BASE")
+        if not api_base:
+            errors.append("Environment variable OPENAI_API_BASE is not set for Azure API Type")
+        else:
+            openai.api_base = api_base
+
+        api_version = os.getenv("OPENAI_API_VERSION")
+        if not api_version:
+            errors.append("Environment variable OPENAI_API_VERSION is not set for Azure API Type")
+        else:
+            openai.api_version = api_version
+
+        api_deployment = os.getenv("OPENAI_API_DEPLOYMENT")
+        if not api_deployment:
+            errors.append("Environment variable OPENAI_API_DEPLOYMENT is not set for Azure API Type")
+        else:
+            params['engine'] = api_deployment
+    else:
+        api_model = os.getenv("OPENAI_API_MODEL")
+        if not api_model:
+            errors.append("Environment variable OPENAI_API_MODEL is not set")
+        else:
+            params['model'] = api_model
+
+    return errors, params
+
+
+def start_chat(**kwargs):
+    errors, params = setup_openai()
+    if errors:
+        for e in errors:
+            print(e)
+        return
+
+    print("Please enter your request below.")
+    print("For example: Create a AKS cluster")
+
+    scripts, messages = prompt_chat_gpt([SYSTEM_PROMPT], params)
     while True:
         print("\nMenu: [p: re-Prompt, ", end="")
         if len(scripts) > 0:
@@ -289,7 +303,7 @@ def start_chat(**kwargs):
         # Handle user input
         user_input = getch()
         if user_input == 'p' or user_input == 'P':
-            scripts, messages = prompt_chat_gpt(messages, insist=False, scripts=scripts)
+            scripts, messages = prompt_chat_gpt(messages, params, insist=False, scripts=scripts)
         elif (user_input == 'r' or user_input == 'R') and len(scripts) > 0:
             prompt_user_to_run_script(scripts)
         elif user_input == 'q' or user_input == 'Q':
